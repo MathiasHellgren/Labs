@@ -1,0 +1,404 @@
+---
+import "../styles/global.css"
+import Mark from "../components/Mark.astro"
+import Wordmark from "../components/Wordmark.astro"
+import Icon from "../components/Icon.astro"
+import GitHubMark from "../components/GitHubMark.astro"
+import { REPO, SETUP_GUIDE, LICENSE_URL, SITE_NAME, UMAMI, CONTACT_EMAIL, GOOGLE_SITE_VERIFICATION } from "../config"
+import { METRICS, metricPath } from "../data/metrics"
+import { COMPARISONS } from "../data/compare"
+import { siteGraph } from "../lib/schema"
+import { markdownPath } from "../lib/markdown"
+
+interface Props {
+  title: string
+  description: string
+  /** JSON-LD objects for this page; rendered as one @graph. */
+  schema?: object[]
+  /** OG image path under public/, absolute from the site root. */
+  ogImage?: string
+  ogType?: "website" | "article"
+  keywords: string[]
+  noindex?: boolean
+}
+const { title, description, schema = [], ogImage = "/og.png", ogType = "website", keywords, noindex = false } = Astro.props
+const canonical = new URL(Astro.url.pathname, Astro.site)
+const og = new URL(ogImage, Astro.site)
+// Keep the combined page title and site name short enough to avoid search-result truncation.
+const suffixed = `${title} | ${SITE_NAME}`
+const fullTitle = Astro.url.pathname === "/" || suffixed.length > 60 ? title : suffixed
+// Include the publisher in every graph so page objects can resolve its @id.
+const ld = JSON.stringify({ "@context": "https://schema.org", "@graph": [...siteGraph(Astro.site!), ...schema] }).replace(/</g, "\\u003c")
+const path = Astro.url.pathname
+const hasMarkdown = path === "/" || path === "/glossary/" || METRICS.some(m => metricPath(m) === path) || COMPARISONS.some(c => `/compare/${c.slug}/` === path) || /^\/blog\/[^/]+\/$/.test(path)
+const nav = [
+  { href: "/#features", label: "Features" },
+  { href: "/metrics/", label: "Metrics" },
+  { href: "/compare/", label: "Compare", narrow: true },
+  { href: "/blog/", label: "Blog", wide: true },
+  { href: "/glossary/", label: "Glossary", widest: true },
+]
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- Before first paint: lets CSS hold entrance states (the dials at zero) that only script finishes. -->
+    <script is:inline>document.documentElement.classList.add("js")</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="keywords" content={keywords.join(", ")} />
+    <meta name="robots" content={noindex ? "noindex, follow" : "index, follow, max-image-preview:large"} />
+    <meta name="author" content="Pulse contributors" />
+    {GOOGLE_SITE_VERIFICATION && <meta name="google-site-verification" content={GOOGLE_SITE_VERIFICATION} />}
+    <meta name="publisher" content={SITE_NAME} />
+    {!noindex && <link rel="canonical" href={canonical} />}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="sitemap" href="/sitemap.xml" />
+    <link rel="describedby" href="/llms.txt" type="text/plain" />
+    {hasMarkdown && <link rel="alternate" type="text/markdown" href={markdownPath(path)} title={`${title} in Markdown`} />}
+    <meta name="theme-color" content="#1d2529" />
+
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    {!noindex && <meta property="og:url" content={canonical} />}
+    <meta property="og:image" content={og} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Pulse: recovery, sleep and strain dials from Google Health data, on a dark screen" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={og} />
+    <meta name="twitter:image:alt" content="Pulse: recovery, sleep and strain dials from Google Health data, on a dark screen" />
+
+    <script type="application/ld+json" set:html={ld} />
+    {UMAMI.src && UMAMI.websiteId && <script is:inline defer src={UMAMI.src} data-website-id={UMAMI.websiteId} />}
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="wrap bar">
+        <a class="home" href="/" aria-label="Pulse home">
+          <Mark class="mark" />
+          <Wordmark class="wm" />
+        </a>
+        <nav aria-label="Main">
+          <ul>
+            {
+              nav.map((n) => (
+                <li class:list={[{ widest: n.widest, wide: n.wide, narrow: n.narrow }]}>
+                  <a href={n.href} aria-current={n.href.startsWith("/#") ? undefined : path.startsWith(n.href) ? "page" : undefined}>
+                    {n.label}
+                  </a>
+                </li>
+              ))
+            }
+            <li>
+              <a class="gh" href={REPO} aria-label="Source on GitHub"><GitHubMark class="gh-mark" /><span class="gh-text">GitHub</span></a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <div class="cols">
+          <div class="about">
+            <a class="home" href="/" aria-label="Pulse home">
+              <Mark class="mark" />
+              <Wordmark class="wm" />
+            </a>
+            <p>
+              Open source, self-hosted health scores from your Google Health data. Free for personal and other noncommercial use under the <a
+                href={LICENSE_URL}>PolyForm Noncommercial 1.0.0</a
+              > license.
+            </p>
+          </div>
+          <nav aria-label="Metrics">
+            <h2>Metrics</h2>
+            <ul>{METRICS.map((m) => <li><a href={metricPath(m)}>{m.name}</a></li>)}</ul>
+          </nav>
+          <nav aria-label="Compare and learn">
+            <h2>Compare</h2>
+            <ul>{COMPARISONS.map((c) => <li><a href={`/compare/${c.slug}/`}>{c.nav}</a></li>)}</ul>
+            <h2>Project</h2>
+            <ul>
+              <li><a class="with-icon" href={REPO}><GitHubMark class="l-icon" />Source on GitHub</a></li>
+              <li><a class="with-icon" href={SETUP_GUIDE}><Icon name="book-open" class="l-icon" />Setup guide</a></li>
+              <li><a class="with-icon" href="/blog/"><Icon name="newspaper" class="l-icon" />Blog</a></li>
+              <li><a class="with-icon" href="/glossary/"><Icon name="book-a" class="l-icon" />Glossary</a></li>
+              <li><a class="with-icon" href={`${REPO}/blob/main/SECURITY.md`}><Icon name="shield-check" class="l-icon" />Security policy</a></li>
+              <li><a class="with-icon" href="/privacy/"><Icon name="lock" class="l-icon" />Privacy policy</a></li>
+              <li><a class="with-icon" href="/terms/"><Icon name="file-text" class="l-icon" />Terms of service</a></li>
+            </ul>
+          </nav>
+        </div>
+        <div class="legal">
+          <p>
+            Pulse is made by one independent developer, for the community, for free. It is not trying to compete with WHOOP or any other company. It uses no WHOOP
+            device, data, code or assets: every score comes from your own Google Health data. The interface takes design inspiration from apps the developer admires.
+          </p>
+          <p>
+            WHOOP, Fitbit, Fitbit Air, Google Health and other names are trademarks of their owners. Pulse is not affiliated with or endorsed by them. If you represent
+            WHOOP or any other company and have a concern, please email <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> and it will be changed or taken down.
+          </p>
+          <p>Pulse is a wellness tool, not a medical device, and its scores are estimates.</p>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .skip {
+    position: absolute;
+    left: 16px;
+    top: -60px;
+    z-index: 20;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: #fff;
+    color: var(--background);
+    font-weight: 600;
+  }
+  .skip:focus {
+    top: 12px;
+  }
+
+  .site-header {
+    position: sticky;
+    top: 12px;
+    z-index: 10;
+    margin-top: 12px;
+    pointer-events: none;
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: min(100% - 2 * var(--gutter), 860px);
+    height: 60px;
+    padding: 0 8px 0 20px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgb(34 39 45 / 0.78), rgb(22 27 31 / 0.86));
+    backdrop-filter: blur(16px) saturate(150%);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.1),
+      0 0 0 1px rgb(255 255 255 / 0.06),
+      0 12px 32px -8px rgb(0 0 0 / 0.55);
+    pointer-events: auto;
+  }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .bar {
+      background: #1c2226;
+    }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .bar {
+      background: #1c2226;
+      backdrop-filter: none;
+    }
+  }
+  .home {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    color: var(--foreground);
+    text-decoration: none;
+  }
+  .home :global(.mark) {
+    width: 22px;
+    height: 22px;
+  }
+  .home :global(.wm) {
+    height: 17px;
+  }
+  nav ul {
+    display: flex;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .bar nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 999px;
+    color: var(--foreground-secondary);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition-property: color, background-color, scale;
+    transition-duration: 150ms;
+    transition-timing-function: var(--ease-standard);
+  }
+  .bar nav a:active {
+    scale: 0.96;
+  }
+  .bar nav a:hover,
+  .bar nav a[aria-current="page"] {
+    color: var(--foreground);
+  }
+  .bar nav a[aria-current="page"] {
+    background: rgb(255 255 255 / 0.06);
+  }
+  .bar nav a.gh {
+    gap: 8px;
+    margin-left: 6px;
+    background: #fff;
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .bar nav a.gh:hover {
+    background: #e6edf2;
+  }
+  .bar :global(.gh-mark) {
+    width: 16px;
+    height: 16px;
+  }
+  @media (max-width: 780px) {
+    .widest {
+      display: none;
+    }
+  }
+  @media (max-width: 640px) {
+    .wide {
+      display: none;
+    }
+  }
+  @media (max-width: 520px) {
+    .narrow {
+      display: none;
+    }
+    .bar {
+      padding-left: 14px;
+    }
+    .bar nav a {
+      padding: 0 9px;
+    }
+    .bar nav a.gh {
+      justify-content: center;
+      width: 44px;
+      padding: 0;
+    }
+    .gh-text {
+      display: none;
+    }
+    .bar :global(.gh-mark) {
+      width: 18px;
+      height: 18px;
+    }
+  }
+  /* Phones with Android's larger text: the links grow but the bar can't, so the mark stands alone (the link keeps its name). */
+  @media (max-width: 420px) {
+    .home :global(.wm) {
+      display: none;
+    }
+  }
+  /* The smallest phones: tighter links so the bar fits 320 px without a sideways scroll. */
+  @media (max-width: 360px) {
+    nav ul {
+      gap: 0;
+    }
+    .bar nav a {
+      padding: 0 6px;
+      font-size: 0.875rem;
+    }
+    .bar nav a.gh {
+      margin-left: 2px;
+    }
+  }
+
+  .site-footer {
+    margin-top: clamp(64px, 7vw, 96px);
+    padding: 64px 0 48px;
+    background:
+      radial-gradient(40% 70% at 0% 100%, rgb(0 241 159 / 0.05), transparent 70%),
+      rgb(10 12 14 / 0.6);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+    color: var(--muted-foreground);
+    font-size: 0.9375rem;
+  }
+  .cols {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    gap: 48px;
+  }
+  .about p {
+    margin-top: 16px;
+    max-width: 36ch;
+  }
+  .site-footer h2 {
+    margin-bottom: 12px;
+    color: var(--foreground);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+  .site-footer h2:not(:first-child) {
+    margin-top: 28px;
+  }
+  .site-footer ul {
+    display: block;
+    columns: 1;
+  }
+  .site-footer nav[aria-label="Metrics"] ul {
+    columns: 2;
+    column-gap: 24px;
+  }
+  .site-footer li {
+    break-inside: avoid;
+  }
+  .site-footer li a {
+    display: inline-block;
+    padding: 4px 0;
+    color: var(--foreground-secondary);
+    text-decoration: none;
+  }
+  .site-footer li a:hover {
+    color: var(--foreground);
+  }
+  .site-footer li a.with-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .site-footer :global(.l-icon) {
+    width: 16px;
+    height: 16px;
+    flex: none;
+    color: var(--muted-foreground);
+  }
+  .legal {
+    margin-top: 56px;
+    padding-top: 24px;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+    font-size: 0.8125rem;
+  }
+  .legal p + p {
+    margin-top: 8px;
+  }
+  .legal a {
+    color: var(--foreground-secondary);
+  }
+  @media (max-width: 860px) {
+    .cols {
+      grid-template-columns: 1fr;
+      gap: 36px;
+    }
+  }
+</style>

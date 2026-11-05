@@ -1,0 +1,56 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# testing
+/coverage
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# next.js
+/.next/
+/out/
+/build
+next-env.d.ts
+*.tsbuildinfo
+
+# env files (only the example is committed)
+.env*
+!.env.example
+
+# health data
+/data/
+
+# raw design captures
+docs/design/reference/raw/
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
+.pnpm-debug.log*
+
+# agent worktrees
+/.claude/worktrees/
+
+# e2e screenshots (review locally)
+/e2e/__screens__/
+
+# Design reference screenshots (third-party, not for publishing)
+/docs/design/reference/
+
+# Session hand-off notes: local working notes, not published
+/docs/handoff/
+
+# marketing site build output (site/ is its own project)
+/site/node_modules/
+/site/dist/
+/site/.astro/
+/backups/
+/build-scripts/
+
+# This machine's compose additions (scripts/deploy.sh loads it when present)
+compose.override.yaml

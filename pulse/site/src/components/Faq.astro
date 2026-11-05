@@ -1,0 +1,143 @@
+---
+// Native <details>, so the answers open without any script and stay in the HTML for search engines.
+import type { Faq } from "../data/metrics"
+import Icon from "./Icon.astro"
+
+interface Props {
+  items: Faq[]
+  heading?: string
+  /** A line under the heading (HTML allowed). */
+  aside?: string
+}
+const { items, heading = "Questions", aside } = Astro.props
+---
+
+<section class="faq" aria-labelledby="faq-h">
+  <div class="head">
+    <h2 id="faq-h">{heading}</h2>
+    {aside && <p set:html={aside} />}
+  </div>
+  <div class="list">
+    {
+      items.map((f) => (
+        <details>
+          <summary>
+            {f.q}
+            <span class="toggle">
+              <Icon name="plus" stroke={2} />
+            </span>
+          </summary>
+          <p set:html={f.a} />
+        </details>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .faq {
+    display: grid;
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+    gap: 24px 64px;
+    align-items: start;
+  }
+  .head {
+    position: sticky;
+    top: 96px;
+  }
+  .faq h2 {
+    font-size: clamp(1.625rem, 3vw, 2.125rem);
+  }
+  .head p {
+    margin-top: 12px;
+    color: var(--foreground-secondary);
+  }
+  .head :global(a) {
+    color: var(--foreground);
+  }
+  details {
+    box-shadow: inset 0 -1px 0 rgb(255 255 255 / 0.08);
+  }
+  details:first-child {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 -1px 0 rgb(255 255 255 / 0.08);
+  }
+  summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 60px;
+    padding: 14px 0;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1.0625rem;
+    list-style: none;
+    transition: color 150ms var(--ease-standard);
+  }
+  summary:hover {
+    color: var(--optimal);
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  /* A plus that turns into a cross as the answer opens. */
+  .toggle {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+    color: var(--foreground-secondary);
+    transition-property: rotate, color, box-shadow, background-color;
+    transition-duration: 220ms;
+    transition-timing-function: var(--ease-standard);
+  }
+  .toggle :global(.icon) {
+    width: 16px;
+    height: 16px;
+  }
+  summary:hover .toggle {
+    color: var(--optimal);
+    box-shadow: inset 0 0 0 1px rgb(0 241 159 / 0.4);
+  }
+  details[open] .toggle {
+    rotate: 45deg;
+    background-color: rgb(255 255 255 / 0.06);
+  }
+  details p {
+    max-width: 68ch;
+    padding: 0 0 20px;
+    color: var(--foreground-secondary);
+  }
+  details p :global(a) {
+    color: var(--foreground);
+  }
+  /* The answer slides open where the browser can animate to auto height; elsewhere it opens at once. */
+  @supports (interpolate-size: allow-keywords) {
+    @media (prefers-reduced-motion: no-preference) {
+      .list {
+        interpolate-size: allow-keywords;
+      }
+      details::details-content {
+        block-size: 0;
+        overflow-y: clip;
+        transition:
+          block-size 320ms var(--ease-out-expo),
+          content-visibility 320ms allow-discrete;
+      }
+      details[open]::details-content {
+        block-size: auto;
+      }
+    }
+  }
+  @media (max-width: 860px) {
+    .faq {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .head {
+      position: static;
+    }
+  }
+</style>
