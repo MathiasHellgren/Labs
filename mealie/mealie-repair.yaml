@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mealie-db-repair
+  namespace: mealie
+spec:
+  restartPolicy: Never
+  containers:
+    - name: repair
+      image: python:3.12-slim
+      command: ["sleep", "3600"]
+      volumeMounts:
+        - name: mealie-data
+          mountPath: /app/data
+  volumes:
+    - name: mealie-data
+      persistentVolumeClaim:
+        claimName: mealie-data
+
